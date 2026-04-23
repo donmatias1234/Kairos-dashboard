@@ -301,12 +301,17 @@ async function loadData() {
     const rawData = await resConv.json();
     if (!Array.isArray(rawData)) throw new Error('Respuesta inesperada de Supabase');
 
-    // Fix 1: filtrar sesión de prueba Matías y registros corruptos con = al inicio
-    const SESIONES_PRUEBA = ['kzmwbsq3z_1776658646653'];
+    // Fix 1: filtrar sesiones de prueba Matías y registros corruptos
+    const SESIONES_PRUEBA = [
+      'kzmwbsq3z_1776658646653',       // Matías pruebas iniciales
+      'sess_mg3iu0ox2_1776976068331',   // Matías pruebas 23 abril
+      'sess_4uci80dkz_1776719800071',   // Matías número de pedido
+      '181.43.150.240, 43.249.73.72'    // IP prueba chicureo
+    ];
     const data = rawData.filter(r => {
       if (!r.session_id) return false;
       const sid = r.session_id.replace(/^=+/, '');
-      if (SESIONES_PRUEBA.some(s => sid.includes(s))) return false;
+      if (SESIONES_PRUEBA.some(s => sid.includes(s.replace(/^=+/, '')))) return false;
       return true;
     });
 
