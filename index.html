@@ -295,40 +295,58 @@ function calcularRevenue(pedidos) {
 async function loadData() {
   document.getElementById('status-msg').textContent = 'Actualizando...';
   try {
-    // Cargar conversaciones
     const resConv = await fetch(`${SUPA_URL}/rest/v1/conversaciones?select=*&order=created_at.desc&limit=500`, {
       headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
     });
-    const data = await resConv.json();
-    if (!Array.isArray(data)) throw new Error('Respuesta inesperada de Supabase');
+    const rawData = await resConv.json();
+    if (!Array.isArray(rawData)) throw new Error('Respuesta inesperada de Supabase');
 
-    // Métricas conversación
-    const total = data.length;
-    const conRecom = data.filter(r => r.producto_recomendado && r.producto_recomendado !== '=').length;
+    // Fix 1: filtrar sesión de prueba Matías y registros corruptos con = al inicio
+    const SESIONES_PRUEBA = ['kzmwbsq3z_1776658646653'];
+    const data = rawData.filter(r => {
+      if (!r.session_id) return false;
+      const sid = r.session_id.replace(/^=+/, '');
+      if (SESIONES_PRUEBA.some(s => sid.includes(s))) return false;
+      return true;
+    });
+
+    // Fix 2: métricas sobre datos limpios — sesiones únicas reales
+    const sinClicks = data.filter(r => r.mensaje_usuario !== '__cart_click__');
+    const total = sinClicks.length;
+    const conRecom = sinClicks.filter(r => r.producto_recomendado && !r.producto_recomendado.startsWith('=')).length;
     const clicks = data.filter(r => r.hubo_click_carrito).length;
-    const tasa = total > 0 ? Math.round((clicks / total) * 100) : 0;
+    const sesionesUnicas = new Set(data.map(r => (r.session_id || '').replace(/^=+/, ''))).size;
+    const tasa = sesionesUnicas > 0 ? Math.round((clicks / sesionesUnicas) * 100) : 0;
 
     document.getElementById('m-total').textContent = total;
     document.getElementById('m-recom').textContent = conRecom;
     document.getElementById('m-clicks').textContent = clicks;
     document.getElementById('m-tasa').textContent = tasa + '%';
 
-    // Cargar pedidos con atribución desde Google Sheets via Supabase no disponible
-    // Intentar leer pedidos atribuidos directamente
-    // Por ahora calculamos desde conversaciones (clicks al carrito = Nivel 1)
-    // y mostramos estimación basada en precio_recomendado
-    const clicksConPrecio = data.filter(r => r.hubo_click_carrito && r.precio_recomendado > 0);
-    const revenueN1Est = clicksConPrecio.reduce((sum, r) => sum + (parseFloat(r.precio_recomendado) || 0), 0);
-    const revenueN1Count = clicksConPrecio.length;
+    // Fix 3: Revenue N1 — inferir precio desde variant_id si precio guardado es 0
+    const PRECIOS_VARIANT = {
+      '45548874006689': 37800, '45548874039457': 37800,
+      '45548874072225': 37800, '45548874104993': 37800,
+      '45551576481953': 105000, '45551576514721': 105000,
+      '45551576547489': 105000, '45551576580257': 105000
+    };
+    const clicksN1 = data.filter(r => r.hubo_click_carrito);
+    const revenueN1Est = clicksN1.reduce((sum, r) => {
+      if (r.precio_recomendado > 0) return sum + r.precio_recomendado;
+      const vid = (r.variant_id || '').replace(/^=+/, '');
+      return sum + (PRECIOS_VARIANT[vid] || 0);
+    }, 0);
+    const revenueN1Count = clicksN1.length;
 
-    // Revenue N2: sesiones largas (4+ turnos) con producto recomendado
+    // Fix 4: Revenue N2 — agrupar por session_id limpio
     const sesionesActivas = {};
     data.forEach(r => {
       if (!r.session_id) return;
-      if (!sesionesActivas[r.session_id]) sesionesActivas[r.session_id] = { turnos: 0, precio: 0, click: false };
-      sesionesActivas[r.session_id].turnos = Math.max(sesionesActivas[r.session_id].turnos, r.turno_conversacion || 0);
-      if (r.precio_recomendado > 0) sesionesActivas[r.session_id].precio = r.precio_recomendado;
-      if (r.hubo_click_carrito) sesionesActivas[r.session_id].click = true;
+      const sid = r.session_id.replace(/^=+/, '');
+      if (!sesionesActivas[sid]) sesionesActivas[sid] = { turnos: 0, precio: 0, click: false };
+      sesionesActivas[sid].turnos = Math.max(sesionesActivas[sid].turnos, r.turno_conversacion || 0);
+      if (r.precio_recomendado > 0) sesionesActivas[sid].precio = r.precio_recomendado;
+      if (r.hubo_click_carrito) sesionesActivas[sid].click = true;
     });
     const sesionesN2 = Object.values(sesionesActivas).filter(s => s.turnos >= 4 && !s.click && s.precio > 0);
     const revenueN2Est = sesionesN2.reduce((sum, s) => sum + s.precio, 0);
@@ -348,8 +366,8 @@ async function loadData() {
     if (revenueN1Est > 0) document.getElementById('r-n1-badge').style.display = 'inline-flex';
     if (revenueN2Est > 0) document.getElementById('r-n2-badge').style.display = 'inline-flex';
 
-    // Tabla atribución
-    const n1Sessions = data.filter(r => r.hubo_click_carrito).length;
+    // Tabla atribución — sesiones reales
+    const n1Sessions = revenueN1Count;
     const n2Sessions = Object.values(sesionesActivas).filter(s => s.turnos >= 4).length;
     const sinAtrib = Object.values(sesionesActivas).filter(s => s.turnos < 4).length;
     document.getElementById('tabla-atribucion').innerHTML = `
@@ -431,8 +449,8 @@ async function loadData() {
       }
     });
 
-    // Últimas conversaciones
-    const ultimas = data.slice(0, 20);
+    // Últimas conversaciones — sin clicks internos ni registros corruptos
+    const ultimas = data.filter(r => r.mensaje_usuario !== '__cart_click__' && !r.session_id?.startsWith('=')).slice(0, 20);
     document.getElementById('tabla-conversaciones').innerHTML = ultimas.length === 0
       ? '<div class="empty">Sin conversaciones aún</div>'
       : `<table class="conversaciones-table">
