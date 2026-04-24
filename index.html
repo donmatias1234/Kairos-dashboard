@@ -31,9 +31,13 @@ main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
 .revenue-value { font-size: 22px; font-weight: 500; color: #fff; }
 .revenue-value.highlight { color: #6fcf97; }
 .revenue-value.amber { color: #f6c344; }
+.revenue-value.pipeline { color: #6da9d8; }
+.revenue-value.neutral { color: #d4d4d4; }
 .revenue-sub { font-size: 11px; color: #555; margin-top: 4px; }
 .revenue-badge { display: inline-flex; align-items: center; gap: 4px; background: #1d3a28; color: #6fcf97; font-size: 10px; padding: 2px 7px; border-radius: 10px; margin-top: 6px; }
 .revenue-badge.amber-badge { background: #3a3020; color: #f6c344; }
+.revenue-badge.pipeline-badge { background: #1d2d3a; color: #6da9d8; }
+.disclaimer { font-size: 11px; color: #888; margin-top: 14px; padding: 10px 12px; background: #242424; border-radius: 8px; line-height: 1.5; }
 
 /* MÉTRICAS SUSAN — existentes */
 .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
@@ -101,8 +105,8 @@ main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
 <body>
 
 <header>
-  <div><h1>Kairos AI · SoGud Dashboard</h1></div>
-  <div class="badge"><span class="badge-dot"></span>Susan activa</div>
+  <div><h1>Kairos AI · SoGud Dashboard <span style="opacity:0.5;font-weight:300;">v2</span></h1></div>
+  <div class="badge"><span class="badge-dot"></span>Susan v17.5 activa</div>
 </header>
 
 <main>
@@ -114,32 +118,35 @@ main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
     <button class="btn-refresh" onclick="loadData()">↻ Actualizar</button>
   </div>
 
-  <!-- REVENUE ATRIBUIDO — nueva sección -->
+  <!-- ATRIBUCIÓN SUSAN — sección honesta (confirmado vs pipeline) -->
   <div class="revenue-section">
-    <div class="revenue-title">Revenue atribuido por Susan</div>
+    <div class="revenue-title">Atribución de Susan al revenue de SoGud</div>
     <div class="revenue-grid">
       <div class="revenue-metric">
-        <div class="revenue-label">Revenue total atribuido</div>
-        <div class="revenue-value highlight" id="r-total">—</div>
-        <div class="revenue-sub">Niveles 1 + 2 combinados</div>
-      </div>
-      <div class="revenue-metric">
-        <div class="revenue-label">Nivel 1 — Click directo</div>
+        <div class="revenue-label">✅ Revenue confirmado</div>
         <div class="revenue-value highlight" id="r-n1">—</div>
-        <div class="revenue-sub" id="r-n1-count">click → compra &lt;2h</div>
-        <div class="revenue-badge" id="r-n1-badge" style="display:none">● Directa</div>
+        <div class="revenue-sub" id="r-n1-count">click directo → compra &lt;2h</div>
+        <div class="revenue-badge" id="r-n1-badge" style="display:none">● Atribución Nivel 1</div>
       </div>
       <div class="revenue-metric">
-        <div class="revenue-label">Nivel 2 — Sesión 24h</div>
-        <div class="revenue-value amber" id="r-n2">—</div>
-        <div class="revenue-sub" id="r-n2-count">habló con Susan y compró</div>
-        <div class="revenue-badge amber-badge" id="r-n2-badge" style="display:none">● Asistida</div>
+        <div class="revenue-label">🔵 Pipeline asistido (estimado)</div>
+        <div class="revenue-value pipeline" id="r-n2">—</div>
+        <div class="revenue-sub" id="r-n2-count">sesiones 4+ turnos con producto recomendado</div>
+        <div class="revenue-badge pipeline-badge" id="r-n2-badge" style="display:none">● No es venta cerrada</div>
       </div>
       <div class="revenue-metric">
-        <div class="revenue-label">% revenue atribuido</div>
+        <div class="revenue-label">Revenue mensual SoGud (real)</div>
+        <div class="revenue-value neutral" id="r-mensual">—</div>
+        <div class="revenue-sub" id="r-mensual-sub">pedidos pagados del mes en curso</div>
+      </div>
+      <div class="revenue-metric">
+        <div class="revenue-label">% revenue confirmado por Susan</div>
         <div class="revenue-value highlight" id="r-pct">—</div>
-        <div class="revenue-sub" id="r-pct-sub">del total SoGud este mes</div>
+        <div class="revenue-sub" id="r-pct-sub">solo Nivel 1 sobre revenue real</div>
       </div>
+    </div>
+    <div class="disclaimer">
+      ⚠️ El pipeline asistido refleja conversaciones largas con producto recomendado, no compras confirmadas. Solo el Nivel 1 cuenta como revenue real atribuido.
     </div>
   </div>
 
@@ -179,30 +186,33 @@ main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
     </div>
   </div>
 
-  <!-- SEMÁFORO STOCK -->
+  <!-- SEMÁFORO STOCK — datos reales 24 abril 2026 -->
   <div class="stock-section" style="margin-bottom:16px;">
-    <div class="card-title">Alerta de stock — producción</div>
+    <div class="card-title">Stock actual de shots — días de inventario</div>
     <div class="stock-grid">
-      <div class="stock-item stock-red">
-        <div class="shot-name">Inner Glow</div>
-        <div class="shot-count">0</div>
-        <div class="shot-label">días de stock</div>
-      </div>
-      <div class="stock-item stock-red">
+      <div class="stock-item stock-green">
         <div class="shot-name">Good Inside</div>
-        <div class="shot-count">0.1</div>
-        <div class="shot-label">días de stock</div>
+        <div class="shot-count">9.3</div>
+        <div class="shot-label">días · 424 shots</div>
       </div>
-      <div class="stock-item stock-amber">
+      <div class="stock-item stock-green">
+        <div class="shot-name">Inner Glow</div>
+        <div class="shot-count">19.8</div>
+        <div class="shot-label">días · 207 shots</div>
+      </div>
+      <div class="stock-item stock-green">
         <div class="shot-name">Defense Boost</div>
-        <div class="shot-count">—</div>
-        <div class="shot-label">verificar</div>
+        <div class="shot-count">17.3</div>
+        <div class="shot-label">días · 217 shots</div>
       </div>
-      <div class="stock-item stock-amber">
+      <div class="stock-item stock-green">
         <div class="shot-name">Pure Energy</div>
-        <div class="shot-count">—</div>
-        <div class="shot-label">verificar</div>
+        <div class="shot-count">31.9</div>
+        <div class="shot-label">días · 213 shots</div>
       </div>
+    </div>
+    <div style="font-size:11px;color:#888;margin-top:14px;padding:10px 12px;background:#faf9f7;border-radius:8px;line-height:1.5;">
+      📦 <strong>Envases:</strong> Fran confirmó stock para ~2 meses de producción. Conteo físico programado para el domingo 27 abril para confirmar el número real.
     </div>
   </div>
 
@@ -237,8 +247,18 @@ main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
 const SUPA_URL = 'https://kfntteirirrslwvxohjg.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmbnR0ZWlyaXJyc2x3dnhvaGpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NDczMjksImV4cCI6MjA5MjEyMzMyOX0.BArrutB6WCiqRHOI2AEe8g_kcqZcH34O72e7mjfijrk';
 
-// Revenue total SoGud este mes (actualizar manualmente o conectar a Sheets)
-const REVENUE_MES_SOGUD = 3676670;
+// Google Sheets — pestaña Pedidos en formato CSV público
+// (Para que esto funcione, el Sheet debe estar publicado: Archivo → Compartir → Publicar en la web → Pedidos como CSV)
+const SHEETS_PEDIDOS_CSV = 'https://docs.google.com/spreadsheets/d/1OFaNi6saS-ihi-nBhJd-9DlT6vLHU2yP3akbI2y9AgI/gviz/tq?tqx=out:csv&sheet=Pedidos';
+
+// Sesiones de prueba de Matías — filtrar del análisis
+const TEST_SESSIONS = new Set([
+  'kzmwbsq3z_1776658646653',
+  'sess_mg3iu0ox2_1776976068331',
+  'sess_4uci80dkz_1776719800071',
+  'ztmagtlsx_1776770595844',
+  'sess_kzmwbsq3z_1776658646653'
+]);
 
 let horasChart = null;
 
@@ -292,123 +312,203 @@ function calcularRevenue(pedidos) {
   return { n1Revenue, n1Count, n2Revenue, n2Count };
 }
 
+// Parser CSV simple (sin librería externa)
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length === 0) return [];
+  const parseRow = (line) => {
+    const out = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
+      else if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out;
+  };
+  const headers = parseRow(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = parseRow(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h.trim()] = (vals[i] || '').trim(); });
+    return obj;
+  });
+}
+
 async function loadData() {
   document.getElementById('status-msg').textContent = 'Actualizando...';
   try {
+    // ========================================================
+    // 1. CONVERSACIONES SUSAN (Supabase)
+    // ========================================================
     const resConv = await fetch(`${SUPA_URL}/rest/v1/conversaciones?select=*&order=created_at.desc&limit=500`, {
       headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` }
     });
-    const rawData = await resConv.json();
-    if (!Array.isArray(rawData)) throw new Error('Respuesta inesperada de Supabase');
+    const dataAll = await resConv.json();
+    if (!Array.isArray(dataAll)) throw new Error('Respuesta inesperada de Supabase');
 
-    // Fix 1: filtrar sesiones de prueba Matías y registros corruptos
-    const SESIONES_PRUEBA = [
-      'kzmwbsq3z_1776658646653',        // Matías pruebas iniciales
-      'sess_mg3iu0ox2_1776976068331',    // Matías pruebas 23 abril
-      'sess_4uci80dkz_1776719800071',    // Matías número de pedido
-      'ztmagtlsx_1776770595844',         // Matías "como consigo pega" 23 abril
-      '181.43.150.240',                  // IP Chicureo Matías
-      '181.42.17.166',                   // IP Chicureo Matías variante
-    ];
-    const data = rawData.filter(r => {
-      if (!r.session_id) return false;
-      const sid = r.session_id.replace(/^=+/, '');
-      if (SESIONES_PRUEBA.some(s => sid.includes(s.replace(/^=+/, '')))) return false;
-      return true;
+    // Filtrar sesiones de prueba de Matías
+    const data = dataAll.filter(r => {
+      const sid = (r.session_id || '').replace(/^=/, '');
+      return !TEST_SESSIONS.has(sid);
     });
 
-    // Fix 2: métricas sobre datos limpios — sesiones únicas reales
-    const sinClicks = data.filter(r => r.mensaje_usuario !== '__cart_click__');
-    const total = sinClicks.length;
-    const conRecom = sinClicks.filter(r => r.producto_recomendado && !r.producto_recomendado.startsWith('=')).length;
+    // ========================================================
+    // 2. PEDIDOS REALES (Google Sheets — pestaña Pedidos)
+    // ========================================================
+    let pedidos = [];
+    let revenueMensualReal = 0;
+    let revenueN1Confirmado = 0;
+    let pedidosN1Count = 0;
+    let sheetsOk = false;
+
+    try {
+      const resSheet = await fetch(SHEETS_PEDIDOS_CSV);
+      if (resSheet.ok) {
+        const csvText = await resSheet.text();
+        pedidos = parseCSV(csvText);
+        sheetsOk = true;
+
+        // Mes en curso
+        const ahora = new Date();
+        const mesActual = ahora.getMonth();
+        const anioActual = ahora.getFullYear();
+
+        pedidos.forEach(p => {
+          const fechaStr = p.fecha || '';
+          if (!fechaStr) return;
+          let fecha;
+          try { fecha = new Date(fechaStr); } catch { return; }
+          if (isNaN(fecha)) return;
+
+          const total = parseFloat((p.total_linea || '0').replace(/[^\d.-]/g, '')) || 0;
+          const estado = (p.estado || '').toLowerCase();
+
+          // Solo contar pedidos NO cancelados
+          if (estado === 'cancelled' || estado === 'cancelado') return;
+
+          // Revenue mensual real
+          if (fecha.getMonth() === mesActual && fecha.getFullYear() === anioActual) {
+            revenueMensualReal += total;
+          }
+
+          // Revenue N1 confirmado (sin filtro de fecha — todo el período donde Susan está activa)
+          const atribuido = (p.atribuido_susan || '').toString().toUpperCase();
+          const nivel = (p.nivel_atribucion || '').toString();
+          if (atribuido === 'TRUE' && nivel.includes('Nivel 1')) {
+            revenueN1Confirmado += total;
+            pedidosN1Count++;
+          }
+        });
+      }
+    } catch (errSheet) {
+      console.warn('No se pudo leer Sheets:', errSheet);
+    }
+
+    // ========================================================
+    // 3. MÉTRICAS DE CONVERSACIÓN
+    // ========================================================
+    const total = data.length;
+    const conRecom = data.filter(r => r.producto_recomendado && r.producto_recomendado !== '=').length;
     const clicks = data.filter(r => r.hubo_click_carrito).length;
-    const sesionesUnicas = new Set(data.map(r => (r.session_id || '').replace(/^=+/, ''))).size;
-    const tasa = sesionesUnicas > 0 ? Math.round((clicks / sesionesUnicas) * 100) : 0;
+    const tasa = total > 0 ? Math.round((clicks / total) * 100) : 0;
 
     document.getElementById('m-total').textContent = total;
     document.getElementById('m-recom').textContent = conRecom;
     document.getElementById('m-clicks').textContent = clicks;
     document.getElementById('m-tasa').textContent = tasa + '%';
 
-    // Fix 3: Revenue N1 — inferir precio desde variant_id si precio guardado es 0
-    const PRECIOS_VARIANT = {
-      '45548874006689': 37800, '45548874039457': 37800,
-      '45548874072225': 37800, '45548874104993': 37800,
-      '45551576481953': 105000, '45551576514721': 105000,
-      '45551576547489': 105000, '45551576580257': 105000
-    };
-    const clicksN1 = data.filter(r => r.hubo_click_carrito);
-    const revenueN1Est = clicksN1.reduce((sum, r) => {
-      if (r.precio_recomendado > 0) return sum + r.precio_recomendado;
-      const vid = (r.variant_id || '').replace(/^=+/, '');
-      return sum + (PRECIOS_VARIANT[vid] || 0);
-    }, 0);
-    const revenueN1Count = clicksN1.length;
-
-    // Fix 4: Revenue N2 — agrupar por session_id limpio
-    const sesionesActivas = {};
+    // ========================================================
+    // 4. PIPELINE N2 ESTIMADO (sesiones 4+ turnos con producto)
+    // ========================================================
+    const sesiones = {};
     data.forEach(r => {
-      if (!r.session_id) return;
-      const sid = r.session_id.replace(/^=+/, '');
-      if (!sesionesActivas[sid]) sesionesActivas[sid] = { turnos: 0, precio: 0, click: false };
-      sesionesActivas[sid].turnos = Math.max(sesionesActivas[sid].turnos, r.turno_conversacion || 0);
-      if (r.precio_recomendado > 0) sesionesActivas[sid].precio = r.precio_recomendado;
-      if (r.hubo_click_carrito) sesionesActivas[sid].click = true;
+      const sid = (r.session_id || '').replace(/^=/, '');
+      if (!sid) return;
+      if (!sesiones[sid]) sesiones[sid] = { turnos: 0, precio: 0, click: false };
+      sesiones[sid].turnos = Math.max(sesiones[sid].turnos, parseInt(r.turno_conversacion) || 0);
+      const precio = parseFloat(r.precio_recomendado) || 0;
+      if (precio > 0) sesiones[sid].precio = precio;
+      if (r.hubo_click_carrito) sesiones[sid].click = true;
     });
-    const sesionesN2 = Object.values(sesionesActivas).filter(s => s.turnos >= 4 && !s.click && s.precio > 0);
-    const revenueN2Est = sesionesN2.reduce((sum, s) => sum + s.precio, 0);
-    const revenueN2Count = sesionesN2.length;
 
-    const revenueTotal = revenueN1Est + revenueN2Est;
-    const pctAtribuido = REVENUE_MES_SOGUD > 0 ? Math.round((revenueTotal / REVENUE_MES_SOGUD) * 100) : 0;
+    const sesionesN2 = Object.values(sesiones).filter(s => s.turnos >= 4 && !s.click && s.precio > 0);
+    const pipelineN2 = sesionesN2.reduce((sum, s) => sum + s.precio, 0);
+    const pipelineN2Count = sesionesN2.length;
 
-    document.getElementById('r-total').textContent = clpFormat(revenueTotal);
-    document.getElementById('r-n1').textContent = clpFormat(revenueN1Est);
-    document.getElementById('r-n1-count').textContent = `${revenueN1Count} pedido${revenueN1Count !== 1 ? 's' : ''} directos`;
-    document.getElementById('r-n2').textContent = clpFormat(revenueN2Est);
-    document.getElementById('r-n2-count').textContent = `${revenueN2Count} sesión${revenueN2Count !== 1 ? 'es' : ''} asistidas`;
-    document.getElementById('r-pct').textContent = pctAtribuido + '%';
-    document.getElementById('r-pct-sub').textContent = `de $${(REVENUE_MES_SOGUD/1000000).toFixed(1)}M revenue mensual`;
+    // ========================================================
+    // 5. ACTUALIZAR DOM — métricas honestas
+    // ========================================================
+    document.getElementById('r-n1').textContent = clpFormat(revenueN1Confirmado);
+    document.getElementById('r-n1-count').textContent = pedidosN1Count > 0
+      ? `${pedidosN1Count} pedido${pedidosN1Count !== 1 ? 's' : ''} con session_id confirmado`
+      : 'Aún sin pedidos atribuidos directamente';
 
-    if (revenueN1Est > 0) document.getElementById('r-n1-badge').style.display = 'inline-flex';
-    if (revenueN2Est > 0) document.getElementById('r-n2-badge').style.display = 'inline-flex';
+    document.getElementById('r-n2').textContent = clpFormat(pipelineN2);
+    document.getElementById('r-n2-count').textContent = pipelineN2Count > 0
+      ? `${pipelineN2Count} sesión${pipelineN2Count !== 1 ? 'es' : ''} activa${pipelineN2Count !== 1 ? 's' : ''} con producto recomendado`
+      : 'Sin sesiones activas con producto';
 
-    // Tabla atribución — sesiones reales
-    const n1Sessions = revenueN1Count;
-    const n2Sessions = Object.values(sesionesActivas).filter(s => s.turnos >= 4).length;
-    const sinAtrib = Object.values(sesionesActivas).filter(s => s.turnos < 4).length;
+    if (sheetsOk) {
+      document.getElementById('r-mensual').textContent = clpFormat(revenueMensualReal);
+      document.getElementById('r-mensual-sub').textContent = `pedidos del mes en curso (Sheet)`;
+    } else {
+      document.getElementById('r-mensual').textContent = 'N/D';
+      document.getElementById('r-mensual-sub').textContent = `Sheet no accesible — publicar pestaña Pedidos`;
+    }
+
+    const pctConfirmado = (sheetsOk && revenueMensualReal > 0)
+      ? Math.round((revenueN1Confirmado / revenueMensualReal) * 100)
+      : 0;
+    document.getElementById('r-pct').textContent = pctConfirmado + '%';
+    document.getElementById('r-pct-sub').textContent = sheetsOk
+      ? `de ${clpFormat(revenueMensualReal)} mensuales`
+      : 'requiere acceso al Sheet';
+
+    if (revenueN1Confirmado > 0) document.getElementById('r-n1-badge').style.display = 'inline-flex';
+    if (pipelineN2 > 0) document.getElementById('r-n2-badge').style.display = 'inline-flex';
+
+    // ========================================================
+    // 6. TABLA DE ATRIBUCIÓN (honesta)
+    // ========================================================
+    const sinAtrib = Object.values(sesiones).filter(s => s.turnos < 4 || s.precio === 0).length;
     document.getElementById('tabla-atribucion').innerHTML = `
       <div class="atrib-row">
         <div>
-          <div class="atrib-nivel">Nivel 1 — Click directo</div>
-          <div style="font-size:11px;color:#999;margin-top:2px;">Click carrito → compra en &lt;2h</div>
+          <div class="atrib-nivel">✅ Nivel 1 — Click directo confirmado</div>
+          <div style="font-size:11px;color:#999;margin-top:2px;">Pedidos con session_id de Susan en Shopify</div>
         </div>
         <div style="text-align:right">
-          <div class="atrib-count">${n1Sessions} clicks</div>
-          <div class="atrib-revenue">${clpFormat(revenueN1Est)}</div>
+          <div class="atrib-count">${pedidosN1Count} pedido${pedidosN1Count !== 1 ? 's' : ''}</div>
+          <div class="atrib-revenue">${clpFormat(revenueN1Confirmado)}</div>
         </div>
       </div>
       <div class="atrib-row">
         <div>
-          <div class="atrib-nivel">Nivel 2 — Sesión asistida</div>
-          <div style="font-size:11px;color:#999;margin-top:2px;">4+ turnos con producto recomendado</div>
+          <div class="atrib-nivel">🔵 Pipeline asistido (estimado)</div>
+          <div style="font-size:11px;color:#999;margin-top:2px;">4+ turnos con producto recomendado, sin click aún</div>
         </div>
         <div style="text-align:right">
-          <div class="atrib-count">${revenueN2Count} sesiones</div>
-          <div class="atrib-revenue">${clpFormat(revenueN2Est)}</div>
+          <div class="atrib-count">${pipelineN2Count} sesión${pipelineN2Count !== 1 ? 'es' : ''}</div>
+          <div class="atrib-revenue" style="color:#3370a8;">${clpFormat(pipelineN2)}</div>
         </div>
       </div>
       <div class="atrib-row">
         <div>
           <div class="atrib-nivel" style="color:#bbb;">Sin atribución</div>
-          <div style="font-size:11px;color:#ccc;margin-top:2px;">Sesiones cortas sin producto</div>
+          <div style="font-size:11px;color:#ccc;margin-top:2px;">Sesiones cortas o sin producto recomendado</div>
         </div>
         <div style="text-align:right">
-          <div class="atrib-count" style="color:#bbb;">${sinAtrib} sesiones</div>
+          <div class="atrib-count" style="color:#bbb;">${sinAtrib} sesión${sinAtrib !== 1 ? 'es' : ''}</div>
         </div>
       </div>`;
 
-    // Shots recomendados
+    // ========================================================
+    // 7. SHOTS RECOMENDADOS (sin cambios)
+    // ========================================================
     const shotsMap = { 'Good Inside': 0, 'Inner Glow': 0, 'Defense Boost': 0, 'Pure Energy': 0 };
     data.forEach(r => {
       if (!r.producto_recomendado) return;
@@ -427,7 +527,9 @@ async function loadData() {
         <div class="bar-count">${count}</div>
       </div>`).join('');
 
-    // Intenciones (limpiar = del inicio)
+    // ========================================================
+    // 8. INTENCIONES Y PRODUCTOS (sin cambios)
+    // ========================================================
     const intenciones = freq(data.map(r => r.intencion_detectada ? r.intencion_detectada.replace(/^=/, '').trim() : null));
     const intencionSorted = Object.entries(intenciones).filter(([k]) => k).sort((a, b) => b[1] - a[1]).slice(0, 6);
     renderBars('chart-intencion', intencionSorted, intencionSorted[0]?.[1] || 1);
@@ -436,7 +538,9 @@ async function loadData() {
     const productoSorted = Object.entries(productos).filter(([k]) => k && k !== '').sort((a, b) => b[1] - a[1]).slice(0, 5);
     renderBars('chart-producto', productoSorted, productoSorted[0]?.[1] || 1);
 
-    // Horas
+    // ========================================================
+    // 9. HORAS
+    // ========================================================
     const horasCounts = Array(24).fill(0);
     data.forEach(r => { if (r.hora_del_dia !== null) horasCounts[r.hora_del_dia]++; });
     if (horasChart) horasChart.destroy();
@@ -456,8 +560,10 @@ async function loadData() {
       }
     });
 
-    // Últimas conversaciones — sin clicks internos ni registros corruptos
-    const ultimas = data.filter(r => r.mensaje_usuario !== '__cart_click__' && !r.session_id?.startsWith('=')).slice(0, 20);
+    // ========================================================
+    // 10. ÚLTIMAS CONVERSACIONES
+    // ========================================================
+    const ultimas = data.slice(0, 20);
     document.getElementById('tabla-conversaciones').innerHTML = ultimas.length === 0
       ? '<div class="empty">Sin conversaciones aún</div>'
       : `<table class="conversaciones-table">
@@ -475,7 +581,7 @@ async function loadData() {
         </table>`;
 
     const now = new Date();
-    document.getElementById('last-update').textContent = `Actualizado ${now.toLocaleTimeString('es-CL')} · ${total} registros`;
+    document.getElementById('last-update').textContent = `Actualizado ${now.toLocaleTimeString('es-CL')} · ${total} conversaciones reales · ${pedidos.length} pedidos en Sheet`;
     document.getElementById('status-msg').textContent = '';
   } catch (e) {
     document.getElementById('status-msg').textContent = 'Error: ' + e.message;
