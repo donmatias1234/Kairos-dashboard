@@ -303,10 +303,12 @@ async function loadData() {
 
     // Fix 1: filtrar sesiones de prueba Matías y registros corruptos
     const SESIONES_PRUEBA = [
-      'kzmwbsq3z_1776658646653',       // Matías pruebas iniciales
-      'sess_mg3iu0ox2_1776976068331',   // Matías pruebas 23 abril
-      'sess_4uci80dkz_1776719800071',   // Matías número de pedido
-      '181.43.150.240, 43.249.73.72'    // IP prueba chicureo
+      'kzmwbsq3z_1776658646653',        // Matías pruebas iniciales
+      'sess_mg3iu0ox2_1776976068331',    // Matías pruebas 23 abril
+      'sess_4uci80dkz_1776719800071',    // Matías número de pedido
+      'ztmagtlsx_1776770595844',         // Matías "como consigo pega" 23 abril
+      '181.43.150.240',                  // IP Chicureo Matías
+      '181.42.17.166',                   // IP Chicureo Matías variante
     ];
     const data = rawData.filter(r => {
       if (!r.session_id) return false;
