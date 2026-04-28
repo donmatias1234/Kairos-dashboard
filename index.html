@@ -241,6 +241,7 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 // URL CSV correcta — pestaña Pedidos_Public publicada como CSV
 const SHEETS_PEDIDOS_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTbzKiNiQprcNtKBTlLIiI5ALtE1pTo3378_ZY2jGMKV8HaEmAhnGAqlK32Xd7j3N5pO6AdBpfT56mt/pub?gid=945141603&single=true&output=csv';
+const SHEETS_INVENTARIO_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTbzKiNiQprcNtKBTlLIiI5ALtE1pTo3378_ZY2jGMKV8HaEmAhnGAqlK32Xd7j3N5pO6AdBpfT56mt/pub?gid=961478763&single=true&output=csv';
 
 // Sesiones de prueba de Matías — excluir del análisis
 const TEST_SESSIONS = new Set([
@@ -355,22 +356,19 @@ function stockClass(dias) {
 }
 
 // ============================================================
-// CARGA DE STOCK DESDE SHEET
+// CARGA DE STOCK DESDE SHEET (dinámico)
 // ============================================================
 async function cargarStock() {
-  // Intentamos leer la pestaña Inventario del Sheet como CSV
-  // gid de Inventario — necesita ser publicada también.
-  // Si falla, usamos fallback hardcodeado.
   const SHOTS = ['Good Inside', 'Inner Glow', 'Defense Boost', 'Pure Energy'];
 
   const renderStock = (datos, fuente) => {
     document.getElementById('stock-fuente').textContent = fuente;
     document.getElementById('stock-grid').innerHTML = SHOTS.map(nombre => {
       const d = datos[nombre] || {};
-      const dias = d.dias !== undefined ? d.dias : '—';
+      const dias = d.dias !== undefined ? d.dias : null;
       const shots = d.shots !== undefined ? d.shots : '—';
       const cls = stockClass(dias);
-      const diasStr = typeof dias === 'number' ? dias.toFixed(1) : dias;
+      const diasStr = dias !== null ? parseFloat(dias).toFixed(1) : '—';
       return `<div class="stock-item ${cls}">
         <div class="shot-name">${nombre}</div>
         <div class="shot-count">${diasStr}</div>
@@ -379,9 +377,51 @@ async function cargarStock() {
     }).join('');
   };
 
-  // Por ahora usamos fallback confiable siempre
-  // (el Sheet de Inventario requiere publicación separada)
-  renderStock(STOCK_FALLBACK, '↻ datos al 24 abr · actualizar manualmente');
+  try {
+    const res = await fetch(SHEETS_INVENTARIO_CSV + '&t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const csv = await res.text();
+    if (csv.trim().startsWith('<')) throw new Error('HTML recibido');
+
+    // Estructura: fila 1=título, fila 2=subtítulo, fila 3=headers, filas 4-7=datos
+    const lines = csv.split(/\r?\n/);
+
+    // Buscar fila de headers por contenido (no por posición fija)
+    // La fila de headers contiene "Producto" y "SKU"
+    let headerIdx = -1;
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i].toLowerCase();
+      if (l.includes('producto') && l.includes('sku')) { headerIdx = i; break; }
+    }
+    if (headerIdx === -1) throw new Error('No se encontró fila de headers en Inventario');
+
+    const headerLine = lines[headerIdx];
+    const dataLines = lines.slice(headerIdx + 1).filter(l => l.trim());
+
+    const headers = headerLine.split(',').map(h => h.replace(/"/g, '').trim().toLowerCase());
+    const colProducto = headers.findIndex(h => h.includes('producto'));
+    const colStock = headers.findIndex(h => h.includes('stock_post') || h.includes('stock_real_actual'));
+    const colDias = headers.findIndex(h => h.includes('dias_restantes'));
+
+    const datos = {};
+    dataLines.forEach(line => {
+      if (!line.trim()) return;
+      const vals = line.split(',').map(v => v.replace(/"/g, '').trim());
+      const nombre = vals[colProducto] || '';
+      if (!nombre || nombre.toLowerCase().includes('sku')) return;
+      const shots = parseFloat(vals[colStock]) || 0;
+      const dias = parseFloat(vals[colDias]);
+      datos[nombre] = { shots: Math.round(shots), dias: isNaN(dias) ? null : dias };
+    });
+
+    const ahora = new Date().toLocaleDateString('es-CL', {day:'2-digit', month:'2-digit'});
+    renderStock(datos, `↻ actualizado en tiempo real · ${ahora}`);
+
+  } catch(e) {
+    console.warn('Inventario Sheet error:', e);
+    // Fallback hardcodeado si falla
+    renderStock(STOCK_FALLBACK, '⚠️ datos al 24 abr (Sheet no disponible)');
+  }
 }
 
 // ============================================================
