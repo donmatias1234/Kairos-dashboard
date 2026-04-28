@@ -307,29 +307,40 @@ function truncate(str, n) {
 }
 
 // Parser CSV simple sin dependencias
-function parseCSV(text) {
+function parseCSVRow(line) {
+  const out = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+    else if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+function parseCSV(text, headers) {
+  // headers: array de nombres a asignar a cada columna (sin header row en el CSV)
+  // si no se pasa headers, usa la primera fila como header
   const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) return [];
+  if (lines.length === 0) return [];
 
-  const parseRow = (line) => {
-    const out = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
-      else if (c === '"') { inQ = !inQ; }
-      else if (c === ',' && !inQ) { out.push(cur); cur = ''; }
-      else cur += c;
-    }
-    out.push(cur);
-    return out;
-  };
+  let dataLines;
+  let cols;
+  if (headers) {
+    cols = headers;
+    dataLines = lines; // todas son datos
+  } else {
+    cols = parseCSVRow(lines[0]).map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+    dataLines = lines.slice(1);
+  }
 
-  const headers = parseRow(lines[0]).map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
-  return lines.slice(1).map(line => {
-    const vals = parseRow(line);
+  return dataLines.map(line => {
+    const vals = parseCSVRow(line);
     const obj = {};
-    headers.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
+    cols.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
     return obj;
   }).filter(r => Object.values(r).some(v => v !== ''));
 }
@@ -419,7 +430,9 @@ async function loadData() {
       // Verificar que es CSV real (no página de error HTML)
       if (csvText.trim().startsWith('<')) throw new Error('Sheet devolvió HTML — verificar publicación CSV');
 
-      pedidos = parseCSV(csvText);
+      // Pedidos_Public no tiene fila de headers — definir columnas en orden
+      const PEDIDOS_PUBLIC_COLS = ['fecha', 'total_linea', 'atribuido_susan', 'nivel_atribucion'];
+      pedidos = parseCSV(csvText, PEDIDOS_PUBLIC_COLS);
       sheetOk = true;
 
       const ahora = new Date();
