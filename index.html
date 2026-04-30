@@ -546,22 +546,36 @@ async function loadData() {
     document.getElementById('m-tasa').textContent = tasa + '%';
 
     // --------------------------------------------------------
-    // 4. PIPELINE N2 (sesiones 4+ turnos con producto, sin click)
+    // 4. PIPELINE N2 (sesiones con engagement real + producto + sin click)
+    // Criterios corregidos:
+    // - turno_conversacion >= 6 (los turnos van de 2 en 2, así que >=6 = 3+ mensajes reales del usuario)
+    // - precio_recomendado > 0 en la ÚLTIMA fila de la sesión (no solo en alguna fila)
+    // - sin click al carrito
     // --------------------------------------------------------
     const sesiones = {};
     data.forEach(r => {
       const sid = (r.session_id || '').replace(/^=/, '').trim();
       if (!sid) return;
-      if (!sesiones[sid]) sesiones[sid] = { turnos: 0, precio: 0, click: false };
+      if (!sesiones[sid]) sesiones[sid] = { turnos: 0, precio: 0, precioUltimo: 0, click: false, filas: [] };
       const t = parseInt(r.turno_conversacion) || 0;
       if (t > sesiones[sid].turnos) sesiones[sid].turnos = t;
       const precio = parseFloat(r.precio_recomendado) || 0;
       if (precio > 0) sesiones[sid].precio = precio;
       if (r.hubo_click_carrito === true || r.hubo_click_carrito === 'true') sesiones[sid].click = true;
+      sesiones[sid].filas.push({ turno: t, precio });
     });
 
-    const sesionesN2 = Object.values(sesiones).filter(s => s.turnos >= 4 && !s.click && s.precio > 0);
-    const pipelineN2 = sesionesN2.reduce((sum, s) => sum + s.precio, 0);
+    // Para cada sesión, verificar precio en la última fila
+    Object.values(sesiones).forEach(s => {
+      const filasOrdenadas = s.filas.sort((a, b) => b.turno - a.turno);
+      s.precioUltimo = filasOrdenadas[0]?.precio || 0;
+    });
+
+    // Filtro corregido: turno >= 6 (3+ mensajes reales) Y precio en última fila
+    const sesionesN2 = Object.values(sesiones).filter(s =>
+      s.turnos >= 6 && !s.click && s.precioUltimo > 0
+    );
+    const pipelineN2 = sesionesN2.reduce((sum, s) => sum + s.precioUltimo, 0);
     const pipelineN2Count = sesionesN2.length;
 
     // --------------------------------------------------------
