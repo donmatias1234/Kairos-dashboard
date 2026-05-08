@@ -212,7 +212,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
 
   <!-- SALUD DE CONVERSACIÓN -->
   <div class="section-label">Salud de conversación — por sesión única</div>
-  <div class="metrics-3">
+  <div class="metrics">
     <div class="metric">
       <div class="metric-label">Turnos promedio / sesión</div>
       <div class="metric-value" id="s-turnos">—</div>
@@ -230,6 +230,12 @@ main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
       <div class="metric-value" id="s-engaged">—</div>
       <div class="metric-sub">% con 3+ turnos de conversación</div>
       <div id="s-engaged-tag" class="metric-tag gray" style="margin-top:8px;display:none;"></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Recomendación efectiva</div>
+      <div class="metric-value" id="s-recom-efectiva">—</div>
+      <div class="metric-sub" id="s-recom-efectiva-sub">compras / recomendaciones</div>
+      <div id="s-recom-efectiva-tag" class="metric-tag gray" style="margin-top:8px;display:none;"></div>
     </div>
   </div>
 
@@ -370,6 +376,19 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const REVENUE_MES_SOGUD = 3676670;
 const SHOTS_KEYS = ['Good Inside', 'Inner Glow', 'Defense Boost', 'Pure Energy', 'Zz Mode'];
 
+const SESIONES_PRUEBA = [
+  'kzmwbsq3z_1776658646653',
+  'sess_mg3iu0ox2_1776976068331',
+  'sess_4uci80dkz_1776719800071',
+  'ztmagtlsx_1776770595844'
+];
+
+function esSesionPrueba(sid) {
+  if (!sid) return false;
+  const clean = sid.replace(/^=+/, '');
+  return SESIONES_PRUEBA.some(p => clean.includes(p));
+}
+
 let horasChart = null;
 let trendChart = null;
 
@@ -439,10 +458,12 @@ async function loadData() {
     const data = await res.json();
     if (!Array.isArray(data)) throw new Error('Respuesta inesperada de Supabase');
 
+    const dataLimpia = data.filter(r => !esSesionPrueba(r.session_id));
+
     /* ── MÉTRICAS BASE ── */
-    const total = data.length;
-    const conRecom = data.filter(r => r.producto_recomendado && r.producto_recomendado !== '=').length;
-    const clicks   = data.filter(r => r.hubo_click_carrito).length;
+    const total = dataLimpia.length;
+    const conRecom = dataLimpia.filter(r => r.producto_recomendado && r.producto_recomendado !== '=').length;
+    const clicks   = dataLimpia.filter(r => r.hubo_click_carrito).length;
     const tasa     = pct(clicks, total);
 
     document.getElementById('m-total').textContent  = total;
@@ -451,19 +472,20 @@ async function loadData() {
     document.getElementById('m-tasa').textContent   = tasa + '%';
 
     /* ── REVENUE (estimado desde conversaciones) ── */
-    const clicksConPrecio = data.filter(r => r.hubo_click_carrito && r.precio_recomendado > 0);
+    const clicksConPrecio = dataLimpia.filter(r => r.hubo_click_carrito && r.precio_recomendado > 0);
     const revenueN1Est    = clicksConPrecio.reduce((s, r) => s + (parseFloat(r.precio_recomendado) || 0), 0);
     const revenueN1Count  = clicksConPrecio.length;
 
     /* ── SESIONES AGRUPADAS ── */
     const sesMap = {};
-    data.forEach(r => {
+    dataLimpia.forEach(r => {
       if (!r.session_id) return;
-      if (!sesMap[r.session_id]) sesMap[r.session_id] = {
+      const sid = r.session_id.replace(/^=+/, '');
+      if (!sesMap[sid]) sesMap[sid] = {
         turnos: 0, hasRecom: false, hasClick: false, hasCompra: false,
-        usedQR: false, shot: null, precio: 0
+        usedQR: false, shot: null, precio: 0, hasShopifyOrder: false
       };
-      const s = sesMap[r.session_id];
+      const s = sesMap[sid];
       s.turnos = Math.max(s.turnos, r.turno_conversacion || 0);
       if (r.producto_recomendado && r.producto_recomendado !== '=' && r.producto_recomendado.trim()) {
         s.hasRecom = true;
@@ -472,6 +494,7 @@ async function loadData() {
       if (r.precio_recomendado > 0) s.precio = r.precio_recomendado;
       if (r.hubo_click_carrito) s.hasClick = true;
       if (r.compra_confirmada)  s.hasCompra = true;
+      if (r.shopify_order_id)   s.hasShopifyOrder = true;
       if (r.quick_reply_usado)  s.usedQR = true;
     });
     const sesArr      = Object.values(sesMap);
@@ -482,6 +505,10 @@ async function loadData() {
     const avgTurnos   = (sesArr.reduce((s, r) => s + r.turnos, 0) / totalSes).toFixed(1);
     const pctQR       = pct(sesArr.filter(s => s.usedQR).length, totalSes);
     const pctEngaged  = pct(sesArr.filter(s => s.turnos >= 3).length, totalSes);
+    const sesConCompraCon = sesArr.filter(
+      s => s.hasRecom && s.hasClick && s.hasCompra && s.hasShopifyOrder
+    ).length;
+    const pctRecomEfectiva = pct(sesConCompraCon, sesConRecom);
 
     /* Revenue N2 (sesiones largas sin click directo) */
     const sesN2     = sesArr.filter(s => s.turnos >= 4 && !s.hasClick && s.precio > 0);
@@ -503,6 +530,9 @@ async function loadData() {
     document.getElementById('s-turnos').textContent  = avgTurnos;
     document.getElementById('s-qr').textContent      = pctQR + '%';
     document.getElementById('s-engaged').textContent = pctEngaged + '%';
+    document.getElementById('s-recom-efectiva').textContent = pctRecomEfectiva + '%';
+    document.getElementById('s-recom-efectiva-sub').textContent =
+      `${sesConCompraCon} compra${sesConCompraCon !== 1 ? 's' : ''} de ${sesConRecom} recomendaciones`;
 
     healthTag('s-turnos-tag', parseFloat(avgTurnos),
       [4, 2], ['Buena profundidad', 'Normal', 'Conversaciones muy cortas']);
@@ -510,6 +540,8 @@ async function loadData() {
       [40, 20], ['QR bien usado', 'Normal', 'Baja adopción de QR']);
     healthTag('s-engaged-tag', pctEngaged,
       [35, 15], ['Alta retención', 'Normal', 'Alto drop-off']);
+    healthTag('s-recom-efectiva-tag', pctRecomEfectiva,
+      [8, 3], ['Conversión alta', 'Normal', 'Conversión baja']);
 
     /* ── FUNNEL ── */
     const pctF2 = pct(sesConRecom, totalSes);
@@ -565,7 +597,7 @@ async function loadData() {
 
     /* ── SHOTS RECOMENDADOS (incluye Zz Mode) ── */
     const shotsMap = { 'Good Inside': 0, 'Inner Glow': 0, 'Defense Boost': 0, 'Pure Energy': 0, 'Zz Mode': 0 };
-    data.forEach(r => {
+    dataLimpia.forEach(r => {
       if (!r.producto_recomendado) return;
       const p = r.producto_recomendado;
       const key = SHOTS_KEYS.find(k => p.includes(k));
@@ -621,7 +653,7 @@ async function loadData() {
       d.setDate(d.getDate() - i);
       const ds = d.toISOString().slice(0, 10);
       t7Labels.push(d.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric' }));
-      const dayRows = data.filter(r => r.created_at && r.created_at.slice(0, 10) === ds);
+      const dayRows = dataLimpia.filter(r => r.created_at && r.created_at.slice(0, 10) === ds);
       t7Conv.push(dayRows.length);
       t7Click.push(dayRows.filter(r => r.hubo_click_carrito).length);
     }
@@ -646,17 +678,17 @@ async function loadData() {
     });
 
     /* ── INTENCIONES Y PRODUCTOS ── */
-    const intenciones = freq(data.map(r => r.intencion_detectada ? r.intencion_detectada.replace(/^=/, '').trim() : null));
+    const intenciones = freq(dataLimpia.map(r => r.intencion_detectada ? r.intencion_detectada.replace(/^=/, '').trim() : null));
     const intencionSorted = Object.entries(intenciones).filter(([k]) => k).sort((a, b) => b[1] - a[1]).slice(0, 6);
     renderBars('chart-intencion', intencionSorted, intencionSorted[0]?.[1] || 1);
 
-    const productos = freq(data.map(r => r.producto_recomendado ? r.producto_recomendado.replace(/^=/, '').trim() : null));
+    const productos = freq(dataLimpia.map(r => r.producto_recomendado ? r.producto_recomendado.replace(/^=/, '').trim() : null));
     const productoSorted = Object.entries(productos).filter(([k]) => k && k !== '').sort((a, b) => b[1] - a[1]).slice(0, 5);
     renderBars('chart-producto', productoSorted, productoSorted[0]?.[1] || 1);
 
     /* ── HORAS ── */
     const horasCounts = Array(24).fill(0);
-    data.forEach(r => { if (r.hora_del_dia !== null) horasCounts[r.hora_del_dia]++; });
+    dataLimpia.forEach(r => { if (r.hora_del_dia !== null) horasCounts[r.hora_del_dia]++; });
     if (horasChart) horasChart.destroy();
     horasChart = new Chart(document.getElementById('chart-horas'), {
       type: 'bar',
@@ -675,7 +707,7 @@ async function loadData() {
     });
 
     /* ── ÚLTIMAS CONVERSACIONES ── */
-    const ultimas = data.slice(0, 20);
+    const ultimas = dataLimpia.slice(0, 20);
     document.getElementById('tabla-conversaciones').innerHTML = !ultimas.length
       ? '<div class="empty">Sin conversaciones aún</div>'
       : `<table class="conversaciones-table">
